@@ -69,7 +69,7 @@ func run() error {
 		log.Info("telegram connected", "bot", "@"+me.Username)
 	}
 
-	client := &http.Client{Timeout: cfg.FetchTimeout}
+	client := extract.NewHTTPClient(cfg.AvitoProxy, cfg.FetchTimeout)
 	browser := extract.NewBrowser(cfg.ChromePath, cfg.AvitoProxy, cfg.ChromeHeadless)
 	defer browser.Close()
 
