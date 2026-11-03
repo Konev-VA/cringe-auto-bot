@@ -1,0 +1,15 @@
+# секреты
+.env
+
+# собранные бинарники
+*-linux
+/bot
+/bot.exe
+/probe
+/probe.exe
+
+# редакторы и ОС
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

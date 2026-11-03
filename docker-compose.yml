@@ -1,0 +1,8 @@
+services:
+  bot:
+    build: .
+    image: autobot:latest
+    env_file: .env
+    # Chromium падает на маленьком /dev/shm
+    shm_size: 1g
+    restart: unless-stopped
