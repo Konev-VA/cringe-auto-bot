@@ -98,13 +98,15 @@ func TestLiveSend(t *testing.T) {
 	if chromePath == "" {
 		chromePath = "/usr/bin/chromium"
 	}
-	avito := extract.NewAvito(chromePath, os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
-	defer avito.Close()
+	browser := extract.NewBrowser(chromePath, os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
+	defer browser.Close()
+	avito := extract.NewAvito(browser)
 
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	h := New(bot, map[listing.Site]extract.Extractor{
-		listing.SiteDrom:  extract.NewDrom(&http.Client{Timeout: time.Minute}),
-		listing.SiteAvito: avito,
+		listing.SiteDrom:     extract.NewDrom(&http.Client{Timeout: time.Minute}),
+		listing.SiteDromBaza: extract.NewBaza(&http.Client{Timeout: time.Minute}, browser),
+		listing.SiteAvito:    avito,
 	}, &http.Client{Timeout: 30 * time.Second}, 90*time.Second, log)
 
 	for _, tc := range cases {

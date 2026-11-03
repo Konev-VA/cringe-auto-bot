@@ -14,8 +14,9 @@ import (
 type Site string
 
 const (
-	SiteDrom  Site = "drom"
-	SiteAvito Site = "avito"
+	SiteDrom     Site = "drom"
+	SiteDromBaza Site = "drom-baza"
+	SiteAvito    Site = "avito"
 )
 
 // ErrNotListing — ссылка не является объявлением о продаже автомобиля.
@@ -23,6 +24,8 @@ var ErrNotListing = errors.New("listing: not a supported listing URL")
 
 var (
 	dromPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/([^/]+)/(\d{5,})\.html$`)
+	// Объявление на baza.drom.ru: /g<номер>.html
+	bazaPathRe = regexp.MustCompile(`^/g\d{6,}\.html$`)
 	// Любое объявление: /<город>/<категория>/<слаг>_<id>. Категория не важна:
 	// бот отвечает и на автозапчасти, и на всё остальное.
 	avitoPathRe = regexp.MustCompile(`^/[^/]+/[^/]+/[^/]+_\d{6,}$`)
@@ -51,6 +54,11 @@ func Detect(raw string) (Site, *url.URL, error) {
 	}
 
 	switch {
+	case u.Host == "baza.drom.ru":
+		if !bazaPathRe.MatchString(u.Path) {
+			return "", nil, ErrNotListing
+		}
+		return SiteDromBaza, u, nil
 	case u.Host == "drom.ru" || strings.HasSuffix(u.Host, ".drom.ru"):
 		if !dromPathRe.MatchString(u.Path) {
 			return "", nil, ErrNotListing

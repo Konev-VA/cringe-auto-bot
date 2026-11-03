@@ -9,7 +9,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/chromedp/chromedp"
@@ -95,30 +94,15 @@ const avitoSnapshotJS = `(() => {
   });
 })()`
 
-// Avito разбирает объявления avito.ru через headless Chromium: обычный HTTP
-// отдаёт 439 (Qrator), страница открывается только после прохождения challenge.
+// Avito разбирает объявления avito.ru через браузер: обычный HTTP отдаёт 439
+// (Qrator), страница открывается только после прохождения challenge.
 type Avito struct {
-	chromePath string
-	proxy      string
-	headless   bool
-
-	once        sync.Once
-	allocCtx    context.Context
-	allocCancel context.CancelFunc
+	browser *Browser
 }
 
-// NewAvito создаёт экстрактор avito.ru. Браузер поднимается при первом запросе.
-// proxy (например socks5://host:1080) нужен там, где avito.ru блокирует адрес
-// сервера: трафик браузера пойдёт через него.
-func NewAvito(chromePath, proxy string, headless bool) *Avito {
-	return &Avito{chromePath: chromePath, proxy: proxy, headless: headless}
-}
-
-// Close останавливает общий браузерный аллокатор.
-func (a *Avito) Close() {
-	if a.allocCancel != nil {
-		a.allocCancel()
-	}
+// NewAvito создаёт экстрактор avito.ru на общем браузере.
+func NewAvito(browser *Browser) *Avito {
+	return &Avito{browser: browser}
 }
 
 // Extract открывает страницу объявления в браузере и снимает с неё данные.
@@ -171,7 +155,7 @@ func attemptTimeout(ctx context.Context, limit time.Duration) time.Duration {
 
 // snapshot открывает страницу в новой вкладке и снимает с неё снимок.
 func (a *Avito) snapshot(ctx context.Context, target string, timeout time.Duration) (avitoPayload, error) {
-	tabCtx, tabCancel := chromedp.NewContext(a.allocator())
+	tabCtx, tabCancel := a.browser.newTab()
 	defer tabCancel()
 
 	ctx, cancel := context.WithTimeout(tabCtx, timeout)
@@ -196,32 +180,6 @@ func (a *Avito) snapshot(ctx context.Context, target string, timeout time.Durati
 		return avitoPayload{}, fmt.Errorf("avito: decode snapshot: %w", err)
 	}
 	return payload, nil
-}
-
-// allocator лениво создаёт один общий аллокатор браузера на процесс.
-func (a *Avito) allocator() context.Context {
-	a.once.Do(func() {
-		opts := append(chromedp.DefaultExecAllocatorOptions[:],
-			chromedp.ExecPath(a.chromePath),
-			chromedp.Flag("no-sandbox", true),
-			chromedp.Flag("disable-dev-shm-usage", true),
-			chromedp.Flag("disable-gpu", true),
-			chromedp.UserAgent(chromeUA),
-			// Проверка браузера на avito.ru смотрит на признаки автоматизации.
-			chromedp.Flag("disable-blink-features", "AutomationControlled"),
-			chromedp.Flag("exclude-switches", "enable-automation"),
-			chromedp.Flag("lang", "ru-RU"),
-			chromedp.Flag("window-size", "1920,1080"),
-		)
-		if a.headless {
-			opts = append(opts, chromedp.Flag("headless", "new"))
-		}
-		if a.proxy != "" {
-			opts = append(opts, chromedp.Flag("proxy-server", a.proxy))
-		}
-		a.allocCtx, a.allocCancel = chromedp.NewExecAllocator(context.Background(), opts...)
-	})
-	return a.allocCtx
 }
 
 // avitoPayload — снимок страницы, который возвращает avitoSnapshotJS.

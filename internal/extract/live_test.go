@@ -19,6 +19,7 @@ import (
 const (
 	liveDromURL  = "https://auto.drom.ru/novosibirsk/subaru/domingo/148849580.html"
 	liveAvitoURL = "https://www.avito.ru/novosibirsk/avtomobili/toyota_carina_1.6_mt_1982_190_000_km_8470651557"
+	liveBazaURL  = "https://baza.drom.ru/g18515686821.html"
 )
 
 func TestLiveDrom(t *testing.T) {
@@ -54,8 +55,9 @@ func TestLiveAvito(t *testing.T) {
 	if chromePath == "" {
 		chromePath = "/usr/bin/chromium"
 	}
-	avito := NewAvito(chromePath, os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
-	defer avito.Close()
+	browser := NewBrowser(chromePath, os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
+	defer browser.Close()
+	avito := NewAvito(browser)
 
 	l, err := avito.Extract(context.Background(), u)
 	if err != nil {
@@ -85,6 +87,29 @@ func reportListing(t *testing.T, l *listing.Listing) {
 
 // TestLiveDumpFixtures обновляет testdata из живых страниц.
 // Запуск: AUTOBOT_DUMP_FIXTURES=1 go test ./internal/extract -run TestLiveDump -tags live -v
+func TestLiveBaza(t *testing.T) {
+	u, err := url.Parse(liveBazaURL)
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+
+	browser := NewBrowser(os.Getenv("CHROME_PATH"), os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
+	defer browser.Close()
+
+	l, err := NewBaza(&http.Client{Timeout: time.Minute}, browser).Extract(context.Background(), u)
+	if err != nil {
+		t.Fatalf("extract: %v", err)
+	}
+	reportListing(t, l)
+
+	if l.Title == "" || l.Price == "" || l.City == "" {
+		t.Errorf("incomplete listing: title=%q price=%q city=%q", l.Title, l.Price, l.City)
+	}
+	if len(l.Photos) == 0 {
+		t.Error("no photos parsed")
+	}
+}
+
 func TestLiveDumpFixtures(t *testing.T) {
 	if os.Getenv("AUTOBOT_DUMP_FIXTURES") == "" {
 		t.Skip("set AUTOBOT_DUMP_FIXTURES=1 to refresh testdata")
@@ -94,10 +119,11 @@ func TestLiveDumpFixtures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	avito := NewAvito(os.Getenv("CHROME_PATH"), os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
-	defer avito.Close()
+	browser := NewBrowser(os.Getenv("CHROME_PATH"), os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
+	defer browser.Close()
+	avito := NewAvito(browser)
 
-	payload, err := avito.snapshot(context.Background(), u.String())
+	payload, err := avito.snapshot(context.Background(), u.String(), avitoAttempt)
 	if err != nil {
 		t.Fatalf("snapshot: %v", err)
 	}

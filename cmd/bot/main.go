@@ -69,13 +69,14 @@ func run() error {
 		log.Info("telegram connected", "bot", "@"+me.Username)
 	}
 
-	drom := extract.NewDrom(&http.Client{Timeout: cfg.FetchTimeout})
-	avito := extract.NewAvito(cfg.ChromePath, cfg.AvitoProxy, cfg.ChromeHeadless)
-	defer avito.Close()
+	client := &http.Client{Timeout: cfg.FetchTimeout}
+	browser := extract.NewBrowser(cfg.ChromePath, cfg.AvitoProxy, cfg.ChromeHeadless)
+	defer browser.Close()
 
 	h := handler.New(bot, map[listing.Site]extract.Extractor{
-		listing.SiteDrom:  drom,
-		listing.SiteAvito: avito,
+		listing.SiteDrom:     extract.NewDrom(client),
+		listing.SiteDromBaza: extract.NewBaza(client, browser),
+		listing.SiteAvito:    extract.NewAvito(browser),
 	}, &http.Client{Timeout: photoTimeout}, cfg.FetchTimeout, log)
 
 	pollCtx, pollCancel := context.WithCancel(context.Background())

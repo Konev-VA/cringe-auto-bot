@@ -40,6 +40,20 @@ func TestDetect(t *testing.T) {
 			norm: "https://avito.ru/novosibirsk/telefony/iphone_14_128gb_1234567890",
 		},
 		{
+			name: "drom baza",
+			raw:  "https://baza.drom.ru/g18515686821.html",
+			site: SiteDromBaza,
+			norm: "https://baza.drom.ru/g18515686821.html",
+		},
+		{
+			name: "drom baza with www",
+			raw:  "https://www.baza.drom.ru/g18515686821.html#gallery",
+			site: SiteDromBaza,
+			norm: "https://baza.drom.ru/g18515686821.html",
+		},
+		{name: "drom baza category", raw: "https://baza.drom.ru/barnaul/sell_spare_parts/", wantErr: true},
+		{name: "drom baza short id", raw: "https://baza.drom.ru/g1.html", wantErr: true},
+		{
 			name: "avito parts with utm",
 			raw:  "https://www.avito.ru/kozelsk/zapchasti_i_aksessuary/litye_diski_watanabe_rs_6r14_4100_8503704612?utm_campaign=native&utm_medium=item_page_android&utm_source=soc_sharing",
 			site: SiteAvito,
