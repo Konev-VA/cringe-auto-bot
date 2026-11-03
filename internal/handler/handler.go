@@ -3,6 +3,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -113,9 +114,19 @@ func (h *Handler) sendText(ctx context.Context, chatID int64, messageID int, tex
 }
 
 func (h *Handler) sendListing(ctx context.Context, chatID int64, messageID int, l *listing.Listing) {
+	start := time.Now()
 	text, rest := card(l)
 	reply := &telego.ReplyParameters{MessageID: messageID}
 	files := h.downloadPhotos(ctx, l.Photos)
+	downloaded := time.Since(start)
+
+	// Пока уходит альбом, держим наготове второе соединение: в блокирующих
+	// сетях новый dial стоит 2–4 с, и продолжение описания ждало бы именно его.
+	warm := make(chan struct{})
+	go func() {
+		defer close(warm)
+		h.warmConnection(ctx, chatID, l.SourceURL)
+	}()
 
 	err := h.sendWithRetry(ctx, func() error {
 		switch len(files) {
@@ -164,7 +175,34 @@ func (h *Handler) sendListing(ctx context.Context, chatID int64, messageID int, 
 		return
 	}
 
+	<-warm
+	descStart := time.Now()
 	h.sendDescription(ctx, chatID, l.SourceURL, rest)
+	descDone := time.Since(descStart)
+
+	// Тайминги нужны, чтобы понимать, где именно уходит пауза: скачивание
+	// снимков, сама отправка карточки или продолжение описания.
+	h.log.Info("listing sent",
+		"chat_id", chatID,
+		"url", l.SourceURL,
+		"photos", len(files),
+		"parts", len(rest),
+		"download_ms", downloaded.Milliseconds(),
+		"send_ms", (descStart.Sub(start) - downloaded).Milliseconds(),
+		"desc_ms", descDone.Milliseconds(),
+		"total_ms", (descStart.Sub(start) + descDone).Milliseconds(),
+	)
+}
+
+// warmConnection открывает и держит соединение с Bot API, чтобы следующее
+// сообщение уходило по уже установленному каналу.
+func (h *Handler) warmConnection(ctx context.Context, chatID int64, sourceURL string) {
+	warmCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if _, err := h.bot.GetMe(warmCtx); err != nil && !errors.Is(err, context.Canceled) {
+		h.log.Warn("warm connection failed", "chat_id", chatID, "url", sourceURL, "error", h.redact(err))
+	}
 }
 
 // sendDescription отправляет остаток описания, который не влез в подпись.

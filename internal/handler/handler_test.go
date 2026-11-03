@@ -109,14 +109,21 @@ func newFakeTelegram(t *testing.T) *fakeTelegram {
 	return f
 }
 
+// next отдаёт следующий вызов отправки, пропуская служебный прогрев соединения.
 func (f *fakeTelegram) next(t *testing.T) botRequest {
 	t.Helper()
-	select {
-	case req := <-f.requests:
-		return req
-	case <-time.After(20 * time.Second):
-		t.Fatal("no bot api request received")
-		return botRequest{}
+	deadline := time.After(20 * time.Second)
+	for {
+		select {
+		case req := <-f.requests:
+			if req.Method == "getMe" {
+				continue
+			}
+			return req
+		case <-deadline:
+			t.Fatal("no bot api request received")
+			return botRequest{}
+		}
 	}
 }
 

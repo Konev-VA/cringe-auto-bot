@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	dialTimeout = 4 * time.Second
-	attempts    = 3
+	dialTimeout = 2 * time.Second
+	attempts    = 4
 	backoff     = 150 * time.Millisecond
 )
 
@@ -33,6 +33,7 @@ func NewTransport(ips []string) http.RoundTripper {
 			DialContext:           dialFunc(dial, ips),
 			ForceAttemptHTTP2:     true,
 			MaxIdleConns:          10,
+			MaxIdleConnsPerHost:   4,
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   dialTimeout,
 			ExpectContinueTimeout: time.Second,

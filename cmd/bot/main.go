@@ -21,8 +21,15 @@ import (
 )
 
 const (
-	pollTimeout     = 30 * time.Second
-	shutdownTimeout = 10 * time.Second
+	// Короткий long polling: на этом канале запросы обрываются, а Telegram
+	// держит оборванный запрос до истечения таймаута. С длинным опросом
+	// следующий getUpdates приходит к «зависшему» и получает 409 Conflict.
+	pollTimeout = 30 * time.Second
+	// Короткая пауза перед повтором: 409 значит, что предыдущий запрос уже
+	// снят сервером, и следующий сразу проходит. С паузой в 8–15 с бот в это
+	// время просто не слышит чат.
+	pollRetryTimeout = 2 * time.Second
+	shutdownTimeout  = 10 * time.Second
 	// photoTimeout — предел на скачивание одного снимка перед отправкой.
 	photoTimeout = 20 * time.Second
 )
@@ -77,7 +84,7 @@ func run() error {
 	updates, err := bot.UpdatesViaLongPolling(pollCtx, &telego.GetUpdatesParams{
 		Timeout:        int(pollTimeout.Seconds()),
 		AllowedUpdates: []string{telego.MessageUpdates},
-	})
+	}, telego.WithLongPollingRetryTimeout(pollRetryTimeout))
 	if err != nil {
 		return err
 	}
