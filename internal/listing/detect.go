@@ -24,8 +24,10 @@ var ErrNotListing = errors.New("listing: not a supported listing URL")
 
 var (
 	dromPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/([^/]+)/(\d{5,})\.html$`)
-	// Объявление на baza.drom.ru: /g<номер>.html
-	bazaPathRe = regexp.MustCompile(`^/g\d{6,}\.html$`)
+	// Объявление на baza.drom.ru: короткая форма /g<номер>.html или
+	// человекочитаемая /<город>/<категория>/<слаг>-<номер>.html
+	bazaPathRe       = regexp.MustCompile(`^/g\d{6,}\.html$`)
+	bazaReadablePath = regexp.MustCompile(`^/(?:[^/]+/)*[^/]+-\d{6,}\.html$`)
 	// Любое объявление: /<город>/<категория>/<слаг>_<id>. Категория не важна:
 	// бот отвечает и на автозапчасти, и на всё остальное.
 	avitoPathRe = regexp.MustCompile(`^/[^/]+/[^/]+/[^/]+_\d{6,}$`)
@@ -55,7 +57,7 @@ func Detect(raw string) (Site, *url.URL, error) {
 
 	switch {
 	case u.Host == "baza.drom.ru":
-		if !bazaPathRe.MatchString(u.Path) {
+		if !bazaPathRe.MatchString(u.Path) && !bazaReadablePath.MatchString(u.Path) {
 			return "", nil, ErrNotListing
 		}
 		return SiteDromBaza, u, nil

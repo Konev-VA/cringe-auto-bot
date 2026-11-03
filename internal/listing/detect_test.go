@@ -51,6 +51,12 @@ func TestDetect(t *testing.T) {
 			site: SiteDromBaza,
 			norm: "https://baza.drom.ru/g18515686821.html",
 		},
+		{
+			name: "drom baza readable url",
+			raw:  "https://baza.drom.ru/barnaul/sell_spare_parts/sceplenie-volvo-fh13-i-rvi-magnum-dxi13-135071699.html",
+			site: SiteDromBaza,
+			norm: "https://baza.drom.ru/barnaul/sell_spare_parts/sceplenie-volvo-fh13-i-rvi-magnum-dxi13-135071699.html",
+		},
 		{name: "drom baza category", raw: "https://baza.drom.ru/barnaul/sell_spare_parts/", wantErr: true},
 		{name: "drom baza short id", raw: "https://baza.drom.ru/g1.html", wantErr: true},
 		{
