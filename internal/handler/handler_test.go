@@ -387,7 +387,7 @@ func TestProcessReportsExtractError(t *testing.T) {
 func TestProcessIgnoresNonListingLinks(t *testing.T) {
 	h, fake := newTestHandler(t, stubExtractor{listing: testListing("https://example.com", 0)})
 
-	h.process(context.Background(), -100, 42, "https://www.avito.ru/novosibirsk/telefony/iphone_14_128gb_1234567890")
+	h.process(context.Background(), -100, 42, "https://www.avito.ru/novosibirsk/telefony")
 	h.process(context.Background(), -100, 42, "https://example.com")
 
 	if got := fake.sent(); len(got) != 0 {

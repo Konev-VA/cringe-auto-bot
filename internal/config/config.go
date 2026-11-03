@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,6 +17,9 @@ type Config struct {
 	ChromePath   string        // CHROME_PATH, по умолчанию "/usr/bin/chromium"
 	FetchTimeout time.Duration // FETCH_TIMEOUT, по умолчанию 60s
 	LogLevel     string        // LOG_LEVEL, по умолчанию "info"
+	// ChromeHeadless — CHROME_HEADLESS, по умолчанию true. Для avito.ru из-за
+	// границы проверка браузера часто проходит только у окна, а не у headless.
+	ChromeHeadless bool
 	// AvitoProxy — AVITO_PROXY, прокси для браузера, который открывает avito.ru
 	// (avito блокирует зарубежные адреса проверкой браузера). Пусто — без прокси.
 	AvitoProxy string
@@ -33,12 +37,13 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		BotToken:     token,
-		ChromePath:   envOr("CHROME_PATH", "/usr/bin/chromium"),
-		FetchTimeout: 60 * time.Second,
-		LogLevel:     envOr("LOG_LEVEL", "info"),
-		AvitoProxy:   os.Getenv("AVITO_PROXY"),
-		TelegramIPs:  parseList(os.Getenv("TELEGRAM_IPS")),
+		BotToken:       token,
+		ChromePath:     envOr("CHROME_PATH", "/usr/bin/chromium"),
+		FetchTimeout:   60 * time.Second,
+		LogLevel:       envOr("LOG_LEVEL", "info"),
+		ChromeHeadless: envBool("CHROME_HEADLESS", true),
+		AvitoProxy:     os.Getenv("AVITO_PROXY"),
+		TelegramIPs:    parseList(os.Getenv("TELEGRAM_IPS")),
 	}
 
 	if raw := os.Getenv("FETCH_TIMEOUT"); raw != "" {
@@ -53,6 +58,19 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// envBool читает булево значение, считая пустое значение значением по умолчанию.
+func envBool(key string, fallback bool) bool {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.ParseBool(raw)
+	if err != nil {
+		return fallback
+	}
+	return v
 }
 
 func parseList(raw string) []string {

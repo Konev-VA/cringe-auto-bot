@@ -80,8 +80,10 @@ const avitoSnapshotJS = `(() => {
   const g = q('[data-marker="item-view/main-gallery"]');
   const p = q('[data-marker="item-view/item-params"]');
   const params = p ? [...p.querySelectorAll("li")].map(e => clean(e.innerText)).filter(Boolean) : [];
-  const title = clean(meta("og:title")) || clean(q('[data-marker="item-view/title-info"]')?.innerText) ||
-    clean(q("h1")?.innerText) || clean(document.title);
+  // og:title у неавтомобильных объявлений — SEO-строка («… купить в … | Авито»),
+  // поэтому сначала заголовок карточки.
+  const title = clean(q('[data-marker="item-view/title-info"]')?.innerText) || clean(q("h1")?.innerText) ||
+    clean(meta("og:title")) || clean(document.title).replace(/\s*\|[^|]*$/, "");
   return JSON.stringify({
     title,
     price: clean(q('[data-marker="item-view/item-price"]')?.innerText),
@@ -98,6 +100,7 @@ const avitoSnapshotJS = `(() => {
 type Avito struct {
 	chromePath string
 	proxy      string
+	headless   bool
 
 	once        sync.Once
 	allocCtx    context.Context
@@ -107,8 +110,8 @@ type Avito struct {
 // NewAvito создаёт экстрактор avito.ru. Браузер поднимается при первом запросе.
 // proxy (например socks5://host:1080) нужен там, где avito.ru блокирует адрес
 // сервера: трафик браузера пойдёт через него.
-func NewAvito(chromePath, proxy string) *Avito {
-	return &Avito{chromePath: chromePath, proxy: proxy}
+func NewAvito(chromePath, proxy string, headless bool) *Avito {
+	return &Avito{chromePath: chromePath, proxy: proxy, headless: headless}
 }
 
 // Close останавливает общий браузерный аллокатор.
@@ -200,12 +203,19 @@ func (a *Avito) allocator() context.Context {
 	a.once.Do(func() {
 		opts := append(chromedp.DefaultExecAllocatorOptions[:],
 			chromedp.ExecPath(a.chromePath),
-			chromedp.Flag("headless", "new"),
 			chromedp.Flag("no-sandbox", true),
 			chromedp.Flag("disable-dev-shm-usage", true),
 			chromedp.Flag("disable-gpu", true),
 			chromedp.UserAgent(chromeUA),
+			// Проверка браузера на avito.ru смотрит на признаки автоматизации.
+			chromedp.Flag("disable-blink-features", "AutomationControlled"),
+			chromedp.Flag("exclude-switches", "enable-automation"),
+			chromedp.Flag("lang", "ru-RU"),
+			chromedp.Flag("window-size", "1920,1080"),
 		)
+		if a.headless {
+			opts = append(opts, chromedp.Flag("headless", "new"))
+		}
 		if a.proxy != "" {
 			opts = append(opts, chromedp.Flag("proxy-server", a.proxy))
 		}

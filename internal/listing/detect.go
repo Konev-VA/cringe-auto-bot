@@ -22,8 +22,10 @@ const (
 var ErrNotListing = errors.New("listing: not a supported listing URL")
 
 var (
-	dromPathRe  = regexp.MustCompile(`^/([^/]+)/([^/]+)/([^/]+)/(\d{5,})\.html$`)
-	avitoPathRe = regexp.MustCompile(`^/[^/]+/avtomobili/[^/]+_\d{6,}$`)
+	dromPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/([^/]+)/(\d{5,})\.html$`)
+	// Любое объявление: /<город>/<категория>/<слаг>_<id>. Категория не важна:
+	// бот отвечает и на автозапчасти, и на всё остальное.
+	avitoPathRe = regexp.MustCompile(`^/[^/]+/[^/]+/[^/]+_\d{6,}$`)
 	urlRe       = regexp.MustCompile(`https?://[^\s<>"']+`)
 )
 

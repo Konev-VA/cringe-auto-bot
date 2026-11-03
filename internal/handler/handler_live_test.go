@@ -54,6 +54,28 @@ func TestLiveSend(t *testing.T) {
 			},
 		},
 		{
+			// Запчасти: категория не avtomobili — карточка должна собираться так же.
+			name: "avito-parts-coilovers",
+			url:  "https://www.avito.ru/moskva/zapchasti_i_aksessuary/komplekt_amortizatorov_4_sht._fapo_8521003572?utm_campaign=native&utm_medium=item_page_ios&utm_source=soc_sharing",
+			site: listing.SiteAvito,
+			caption: []string{
+				"Комплект амортизаторов (4 шт.) fapo",
+				"15 425 ₽ · Москва",
+				"Состояние: Б/у",
+				"Производитель: Fapo",
+			},
+		},
+		{
+			name: "avito-parts-wheels",
+			url:  "https://www.avito.ru/kozelsk/zapchasti_i_aksessuary/litye_diski_watanabe_rs_6r14_4100_8503704612?utm_campaign=native&utm_medium=item_page_android&utm_source=soc_sharing",
+			site: listing.SiteAvito,
+			caption: []string{
+				"Литые диски Watanabe RS 6×R14 4×100",
+				"12 000 ₽ · Козельск",
+				"Состояние: Б/у",
+			},
+		},
+		{
 			// Объявление с длинным описанием: раньше такое обрывалось в подписи.
 			name: "drom-long-description",
 			url:  "https://auto.drom.ru/krasnoyarsk/ford/fusion/532448742.html",
@@ -76,7 +98,7 @@ func TestLiveSend(t *testing.T) {
 	if chromePath == "" {
 		chromePath = "/usr/bin/chromium"
 	}
-	avito := extract.NewAvito(chromePath, os.Getenv("AVITO_PROXY"))
+	avito := extract.NewAvito(chromePath, os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
 	defer avito.Close()
 
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
