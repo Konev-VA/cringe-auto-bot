@@ -54,7 +54,7 @@ func TestLiveAvito(t *testing.T) {
 	if chromePath == "" {
 		chromePath = "/usr/bin/chromium"
 	}
-	avito := NewAvito(chromePath)
+	avito := NewAvito(chromePath, os.Getenv("AVITO_PROXY"))
 	defer avito.Close()
 
 	l, err := avito.Extract(context.Background(), u)
@@ -94,7 +94,7 @@ func TestLiveDumpFixtures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	avito := NewAvito(os.Getenv("CHROME_PATH"))
+	avito := NewAvito(os.Getenv("CHROME_PATH"), os.Getenv("AVITO_PROXY"))
 	defer avito.Close()
 
 	payload, err := avito.snapshot(context.Background(), u.String())

@@ -70,7 +70,7 @@ func run() error {
 	}
 
 	drom := extract.NewDrom(&http.Client{Timeout: cfg.FetchTimeout})
-	avito := extract.NewAvito(cfg.ChromePath)
+	avito := extract.NewAvito(cfg.ChromePath, cfg.AvitoProxy)
 	defer avito.Close()
 
 	h := handler.New(bot, map[listing.Site]extract.Extractor{
@@ -107,6 +107,7 @@ func run() error {
 	go func() { startErr <- bh.Start() }()
 	log.Info("bot started",
 		"chrome_path", cfg.ChromePath,
+		"avito_proxy", cfg.AvitoProxy != "",
 		"fetch_timeout", cfg.FetchTimeout.String(),
 		"api_ips", cfg.TelegramIPs,
 	)

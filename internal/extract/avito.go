@@ -18,12 +18,14 @@ import (
 )
 
 const (
-	chromeUA        = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-	avitoTimeout    = 60 * time.Second
-	avitoMaxPhotos  = 10
-	avitoMaxSpecs   = 10
-	avitoPriceReady = `[data-marker="item-view/item-price"]`
-	avitoAutoteka   = "Проверить в Автотеке"
+	chromeUA           = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+	avitoAttempt       = 25 * time.Second
+	avitoAttempts      = 2
+	avitoAttemptMinGap = 5 * time.Second
+	avitoMaxPhotos     = 10
+	avitoMaxSpecs      = 10
+	avitoPriceReady    = `[data-marker="item-view/item-price"]`
+	avitoAutoteka      = "Проверить в Автотеке"
 )
 
 var avitoPhotoRe = regexp.MustCompile(`https://[0-9a-z]{2,4}\.img\.avito\.st/image/[^"'\s]+`)
@@ -95,6 +97,7 @@ const avitoSnapshotJS = `(() => {
 // отдаёт 439 (Qrator), страница открывается только после прохождения challenge.
 type Avito struct {
 	chromePath string
+	proxy      string
 
 	once        sync.Once
 	allocCtx    context.Context
@@ -102,8 +105,10 @@ type Avito struct {
 }
 
 // NewAvito создаёт экстрактор avito.ru. Браузер поднимается при первом запросе.
-func NewAvito(chromePath string) *Avito {
-	return &Avito{chromePath: chromePath}
+// proxy (например socks5://host:1080) нужен там, где avito.ru блокирует адрес
+// сервера: трафик браузера пойдёт через него.
+func NewAvito(chromePath, proxy string) *Avito {
+	return &Avito{chromePath: chromePath, proxy: proxy}
 }
 
 // Close останавливает общий браузерный аллокатор.
@@ -114,28 +119,59 @@ func (a *Avito) Close() {
 }
 
 // Extract открывает страницу объявления в браузере и снимает с неё данные.
+// Канал до avito.ru рвётся и отдаёт проверку на ровном месте, поэтому попыток
+// несколько: каждая идёт в новой вкладке, и обычно со второй всё проходит.
 func (a *Avito) Extract(ctx context.Context, u *url.URL) (*listing.Listing, error) {
-	payload, err := a.snapshot(ctx, u.String())
-	if err != nil {
-		return nil, err
-	}
-
-	l, err := parseAvitoPayload(payload, u.String())
-	if err != nil {
-		if errors.Is(err, ErrBlocked) || errors.Is(err, ErrNoData) {
-			return nil, err
+	var lastErr error
+	for range avitoAttempts {
+		timeout := attemptTimeout(ctx, avitoAttempt)
+		if timeout < avitoAttemptMinGap {
+			break
 		}
-		return nil, fmt.Errorf("avito: %w", err)
+
+		payload, err := a.snapshot(ctx, u.String(), timeout)
+		if err != nil {
+			lastErr = err
+			if ctx.Err() != nil {
+				break
+			}
+			continue
+		}
+
+		l, err := parseAvitoPayload(payload, u.String())
+		if err != nil {
+			lastErr = err
+			if errors.Is(err, ErrBlocked) || errors.Is(err, ErrNoData) {
+				return nil, err
+			}
+			continue
+		}
+		return l, nil
 	}
-	return l, nil
+	if lastErr == nil {
+		lastErr = ctx.Err()
+	}
+	return nil, lastErr
+}
+
+// attemptTimeout ограничивает попытку остатком времени вызывающего.
+func attemptTimeout(ctx context.Context, limit time.Duration) time.Duration {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return limit
+	}
+	if remaining := time.Until(deadline); remaining < limit {
+		return remaining
+	}
+	return limit
 }
 
 // snapshot открывает страницу в новой вкладке и снимает с неё снимок.
-func (a *Avito) snapshot(ctx context.Context, target string) (avitoPayload, error) {
+func (a *Avito) snapshot(ctx context.Context, target string, timeout time.Duration) (avitoPayload, error) {
 	tabCtx, tabCancel := chromedp.NewContext(a.allocator())
 	defer tabCancel()
 
-	ctx, cancel := context.WithTimeout(tabCtx, avitoTimeout)
+	ctx, cancel := context.WithTimeout(tabCtx, timeout)
 	defer cancel()
 
 	err := chromedp.Do(ctx,
@@ -170,6 +206,9 @@ func (a *Avito) allocator() context.Context {
 			chromedp.Flag("disable-gpu", true),
 			chromedp.UserAgent(chromeUA),
 		)
+		if a.proxy != "" {
+			opts = append(opts, chromedp.Flag("proxy-server", a.proxy))
+		}
 		a.allocCtx, a.allocCancel = chromedp.NewExecAllocator(context.Background(), opts...)
 	})
 	return a.allocCtx

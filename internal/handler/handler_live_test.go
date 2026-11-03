@@ -76,7 +76,7 @@ func TestLiveSend(t *testing.T) {
 	if chromePath == "" {
 		chromePath = "/usr/bin/chromium"
 	}
-	avito := extract.NewAvito(chromePath)
+	avito := extract.NewAvito(chromePath, os.Getenv("AVITO_PROXY"))
 	defer avito.Close()
 
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))

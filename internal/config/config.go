@@ -16,6 +16,9 @@ type Config struct {
 	ChromePath   string        // CHROME_PATH, по умолчанию "/usr/bin/chromium"
 	FetchTimeout time.Duration // FETCH_TIMEOUT, по умолчанию 60s
 	LogLevel     string        // LOG_LEVEL, по умолчанию "info"
+	// AvitoProxy — AVITO_PROXY, прокси для браузера, который открывает avito.ru
+	// (avito блокирует зарубежные адреса проверкой браузера). Пусто — без прокси.
+	AvitoProxy string
 	// TelegramIPs — TELEGRAM_IPS, список адресов api.telegram.org через запятую.
 	// Нужен там, где DNS отдаёт заблокированные адреса; пусто — обычное
 	// разрешение имени.
@@ -34,6 +37,7 @@ func Load() (*Config, error) {
 		ChromePath:   envOr("CHROME_PATH", "/usr/bin/chromium"),
 		FetchTimeout: 60 * time.Second,
 		LogLevel:     envOr("LOG_LEVEL", "info"),
+		AvitoProxy:   os.Getenv("AVITO_PROXY"),
 		TelegramIPs:  parseList(os.Getenv("TELEGRAM_IPS")),
 	}
 
