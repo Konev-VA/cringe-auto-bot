@@ -20,6 +20,8 @@ const (
 	liveDromURL  = "https://auto.drom.ru/novosibirsk/subaru/domingo/148849580.html"
 	liveAvitoURL = "https://www.avito.ru/novosibirsk/avtomobili/toyota_carina_1.6_mt_1982_190_000_km_8470651557"
 	liveBazaURL  = "https://baza.drom.ru/g18515686821.html"
+	// farpost.ru: объявление с фотографиями и полями виджета viewbull.
+	liveFarpostURL = "https://farpost.ru/vladivostok/auto/wheel/disc/oz-racing-ultraleggera-r18-136356352.html"
 )
 
 func TestLiveDrom(t *testing.T) {
@@ -107,6 +109,32 @@ func TestLiveBaza(t *testing.T) {
 	}
 	if len(l.Photos) == 0 {
 		t.Error("no photos parsed")
+	}
+}
+
+func TestLiveFarpost(t *testing.T) {
+	u, err := url.Parse(liveFarpostURL)
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+
+	browser := NewBrowser(os.Getenv("CHROME_PATH"), os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
+	defer browser.Close()
+
+	l, err := NewFarpost(&http.Client{Timeout: time.Minute}, browser).Extract(context.Background(), u)
+	if err != nil {
+		t.Fatalf("extract: %v", err)
+	}
+	reportListing(t, l)
+
+	if l.Title == "" || l.Price == "" || l.City == "" {
+		t.Errorf("incomplete listing: title=%q price=%q city=%q", l.Title, l.Price, l.City)
+	}
+	if len(l.Photos) == 0 {
+		t.Error("no photos parsed")
+	}
+	if len(l.Specs) == 0 {
+		t.Error("no specs parsed")
 	}
 }
 

@@ -8,7 +8,8 @@ import (
 
 // NewHTTPClient собирает клиент для площадок. Если задан прокси (AVITO_PROXY),
 // через него пойдёт весь исходящий трафик площадок: avito.ru блокирует
-// зарубежные адреса, а baza.drom.ru отдаёт проверку браузера на «грязные».
+// зарубежные адреса, а baza.drom.ru и farpost.ru отдают проверку браузера на
+// «грязные».
 func NewHTTPClient(proxy string, timeout time.Duration) *http.Client {
 	transport := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,

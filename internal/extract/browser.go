@@ -9,7 +9,7 @@ import (
 
 // Browser — один общий headless-Chromium на процесс: площадки, которым нужен
 // настоящий браузер (avito.ru) и страницы, которые отдают проверку на обычный
-// запрос (baza.drom.ru), ходят в него через вкладки.
+// запрос (baza.drom.ru, farpost.ru), ходят в него через вкладки.
 type Browser struct {
 	chromePath string
 	proxy      string

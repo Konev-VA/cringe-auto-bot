@@ -16,6 +16,7 @@ type Site string
 const (
 	SiteDrom     Site = "drom"
 	SiteDromBaza Site = "drom-baza"
+	SiteFarpost  Site = "farpost"
 	SiteAvito    Site = "avito"
 )
 
@@ -28,6 +29,10 @@ var (
 	// человекочитаемая /<город>/<категория>/<слаг>-<номер>.html
 	bazaPathRe       = regexp.MustCompile(`^/g\d{6,}\.html$`)
 	bazaReadablePath = regexp.MustCompile(`^/(?:[^/]+/)*[^/]+-\d{6,}\.html$`)
+	// Объявление на farpost.ru: /<город>/<категории>/<слаг>-<номер>.html или
+	// короткая форма /<номер>, которая редиректит на канонический адрес.
+	farpostPathRe = regexp.MustCompile(`^/(?:[^/]+/)*[^/]+-\d{6,}\.html$`)
+	farpostIDRe   = regexp.MustCompile(`^/\d{6,}/?$`)
 	// Любое объявление: /<город>/<категория>/<слаг>_<id>. Категория не важна:
 	// бот отвечает и на автозапчасти, и на всё остальное.
 	avitoPathRe = regexp.MustCompile(`^/[^/]+/[^/]+/[^/]+_\d{6,}$`)
@@ -61,6 +66,11 @@ func Detect(raw string) (Site, *url.URL, error) {
 			return "", nil, ErrNotListing
 		}
 		return SiteDromBaza, u, nil
+	case u.Host == "farpost.ru" || strings.HasSuffix(u.Host, ".farpost.ru"):
+		if !farpostPathRe.MatchString(u.Path) && !farpostIDRe.MatchString(u.Path) {
+			return "", nil, ErrNotListing
+		}
+		return SiteFarpost, u, nil
 	case u.Host == "drom.ru" || strings.HasSuffix(u.Host, ".drom.ru"):
 		if !dromPathRe.MatchString(u.Path) {
 			return "", nil, ErrNotListing

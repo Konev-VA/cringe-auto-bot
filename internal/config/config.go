@@ -20,8 +20,9 @@ type Config struct {
 	// ChromeHeadless — CHROME_HEADLESS, по умолчанию true. Для avito.ru из-за
 	// границы проверка браузера часто проходит только у окна, а не у headless.
 	ChromeHeadless bool
-	// AvitoProxy — AVITO_PROXY, прокси для браузера, который открывает avito.ru
-	// (avito блокирует зарубежные адреса проверкой браузера). Пусто — без прокси.
+	// AvitoProxy — AVITO_PROXY, прокси для площадок: avito.ru блокирует
+	// зарубежные адреса проверкой браузера, farpost.ru и baza.drom.ru могут
+	// отдавать её же. Пусто — без прокси.
 	AvitoProxy string
 	// TelegramIPs — TELEGRAM_IPS, список адресов api.telegram.org через запятую.
 	// Нужен там, где DNS отдаёт заблокированные адреса; пусто — обычное

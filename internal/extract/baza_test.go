@@ -10,9 +10,9 @@ import (
 
 func TestParseBaza(t *testing.T) {
 	const source = "https://baza.drom.ru/g18515686821.html"
-	l, err := parseBaza(loadFixture(t, "baza.html"), source)
+	l, err := parseViewbull(loadFixture(t, "baza.html"), source, bazaSite)
 	if err != nil {
-		t.Fatalf("parseBaza: %v", err)
+		t.Fatalf("parseViewbull: %v", err)
 	}
 
 	checks := []struct {
@@ -74,7 +74,7 @@ func TestBazaPhotosLimit(t *testing.T) {
 		images = append(images, img, img) // дубли, как в разметке галереи
 	}
 
-	photos := bazaPhotos(bazaProduct{images: images}, nil)
+	photos := viewbullPhotos(viewbullProduct{images: images}, nil, bazaSite.photoRe)
 	if len(photos) != 10 {
 		t.Fatalf("len(photos) = %d, want 10", len(photos))
 	}
@@ -89,7 +89,7 @@ func TestBazaPhotosLimit(t *testing.T) {
 // TestBazaPhotosFromHTMLFallback — без разметки schema.org снимки берутся из DOM.
 func TestBazaPhotosFromHTMLFallback(t *testing.T) {
 	body := loadFixture(t, "baza.html")
-	photos := bazaPhotos(bazaProduct{}, body)
+	photos := viewbullPhotos(viewbullProduct{}, body, bazaSite.photoRe)
 	if len(photos) == 0 {
 		t.Fatal("no photos from html fallback")
 	}
@@ -101,7 +101,7 @@ func TestBazaPhotosFromHTMLFallback(t *testing.T) {
 }
 
 func TestParseBazaNoData(t *testing.T) {
-	_, err := parseBaza([]byte("<html><body><h1>Доска объявлений</h1></body></html>"), "https://baza.drom.ru/g1.html")
+	_, err := parseViewbull([]byte("<html><body><h1>Доска объявлений</h1></body></html>"), "https://baza.drom.ru/g1.html", bazaSite)
 	if !errors.Is(err, ErrNoData) {
 		t.Fatalf("err = %v, want ErrNoData", err)
 	}

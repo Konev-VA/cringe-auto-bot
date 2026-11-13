@@ -1,4 +1,4 @@
-// Command bot слушает чаты и отвечает карточками объявлений drom.ru и avito.ru.
+// Command bot слушает чаты и отвечает карточками объявлений drom.ru, farpost.ru и avito.ru.
 package main
 
 import (
@@ -76,6 +76,7 @@ func run() error {
 	h := handler.New(bot, map[listing.Site]extract.Extractor{
 		listing.SiteDrom:     extract.NewDrom(client),
 		listing.SiteDromBaza: extract.NewBaza(client, browser),
+		listing.SiteFarpost:  extract.NewFarpost(client, browser),
 		listing.SiteAvito:    extract.NewAvito(browser),
 	}, &http.Client{Timeout: photoTimeout}, cfg.FetchTimeout, log)
 

@@ -60,6 +60,26 @@ func TestDetect(t *testing.T) {
 		{name: "drom baza category", raw: "https://baza.drom.ru/barnaul/sell_spare_parts/", wantErr: true},
 		{name: "drom baza short id", raw: "https://baza.drom.ru/g1.html", wantErr: true},
 		{
+			name: "farpost listing",
+			raw:  "https://www.farpost.ru/vladivostok/auto/wheel/disc/oz-racing-ultraleggera-r18-136356352.html",
+			site: SiteFarpost,
+			norm: "https://farpost.ru/vladivostok/auto/wheel/disc/oz-racing-ultraleggera-r18-136356352.html",
+		},
+		{
+			name: "farpost mobile with query",
+			raw:  "https://m.farpost.ru/vladivostok/auto/wheel/disc/oz-racing-ultraleggera-r18-136356352.html?utm_source=share#gallery",
+			site: SiteFarpost,
+			norm: "https://farpost.ru/vladivostok/auto/wheel/disc/oz-racing-ultraleggera-r18-136356352.html?utm_source=share",
+		},
+		{
+			name: "farpost short id",
+			raw:  "https://www.farpost.ru/136356352",
+			site: SiteFarpost,
+			norm: "https://farpost.ru/136356352",
+		},
+		{name: "farpost category", raw: "https://www.farpost.ru/vladivostok/auto/wheel/disc/", wantErr: true},
+		{name: "farpost root", raw: "https://farpost.ru/", wantErr: true},
+		{
 			name: "avito parts with utm",
 			raw:  "https://www.avito.ru/kozelsk/zapchasti_i_aksessuary/litye_diski_watanabe_rs_6r14_4100_8503704612?utm_campaign=native&utm_medium=item_page_android&utm_source=soc_sharing",
 			site: SiteAvito,

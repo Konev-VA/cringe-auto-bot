@@ -8,7 +8,8 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/bot ./cmd/bot
 
 FROM debian:bookworm-slim
 
-# Chromium нужен для avito.ru: обычный HTTP отдаёт 439 (Qrator).
+# Chromium нужен для avito.ru: обычный HTTP отдаёт 439 (Qrator), а также для
+# страниц farpost.ru и baza.drom.ru, отдающих проверку браузера.
 # xvfb нужен для CHROME_HEADLESS=false: проверка браузера на avito.ru охотнее
 # пропускает окно, чем headless.
 RUN apt-get update \

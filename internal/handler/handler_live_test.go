@@ -86,6 +86,17 @@ func TestLiveSend(t *testing.T) {
 				"Год выпуска: 2007",
 			},
 		},
+		{
+			name: "farpost-parts-wheels",
+			url:  "https://www.farpost.ru/vladivostok/auto/wheel/disc/oz-racing-ultraleggera-r18-136356352.html",
+			site: listing.SiteFarpost,
+			caption: []string{
+				"OZ Racing Ultraleggera R18",
+				"100 000 ₽ · Владивосток",
+				"Состояние товара: Б/у",
+				"Сверловка (PCD): 5x100",
+			},
+		},
 	}
 
 	fake := newFakeTelegram(t)
@@ -106,6 +117,7 @@ func TestLiveSend(t *testing.T) {
 	h := New(bot, map[listing.Site]extract.Extractor{
 		listing.SiteDrom:     extract.NewDrom(&http.Client{Timeout: time.Minute}),
 		listing.SiteDromBaza: extract.NewBaza(&http.Client{Timeout: time.Minute}, browser),
+		listing.SiteFarpost:  extract.NewFarpost(&http.Client{Timeout: time.Minute}, browser),
 		listing.SiteAvito:    avito,
 	}, &http.Client{Timeout: 30 * time.Second}, 90*time.Second, log)
 
