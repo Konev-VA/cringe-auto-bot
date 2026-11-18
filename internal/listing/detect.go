@@ -80,6 +80,11 @@ func Detect(raw string) (Site, *url.URL, error) {
 		if !avitoPathRe.MatchString(u.Path) {
 			return "", nil, ErrNotListing
 		}
+		// Параметры запроса (utm_*, context) авито для показа объявления не
+		// нужны, а длинную ссылку бот/браузер обрабатывают хуже. Идём по
+		// короткому виду /<город>/<категория>/<слаг>_<id>.
+		u.RawQuery = ""
+		u.ForceQuery = false
 		return SiteAvito, u, nil
 	default:
 		return "", nil, ErrNotListing

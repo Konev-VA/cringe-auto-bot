@@ -25,7 +25,7 @@ func TestDetect(t *testing.T) {
 			name: "avito mobile with query",
 			raw:  "https://m.avito.ru/novosibirsk/avtomobili/toyota_carina_1.6_mt_1982_190_000_km_8470651557?context=H4sIAAAA",
 			site: SiteAvito,
-			norm: "https://avito.ru/novosibirsk/avtomobili/toyota_carina_1.6_mt_1982_190_000_km_8470651557?context=H4sIAAAA",
+			norm: "https://avito.ru/novosibirsk/avtomobili/toyota_carina_1.6_mt_1982_190_000_km_8470651557",
 		},
 		{
 			name: "avito www and http and fragment",
@@ -83,7 +83,13 @@ func TestDetect(t *testing.T) {
 			name: "avito parts with utm",
 			raw:  "https://www.avito.ru/kozelsk/zapchasti_i_aksessuary/litye_diski_watanabe_rs_6r14_4100_8503704612?utm_campaign=native&utm_medium=item_page_android&utm_source=soc_sharing",
 			site: SiteAvito,
-			norm: "https://avito.ru/kozelsk/zapchasti_i_aksessuary/litye_diski_watanabe_rs_6r14_4100_8503704612?utm_campaign=native&utm_medium=item_page_android&utm_source=soc_sharing",
+			norm: "https://avito.ru/kozelsk/zapchasti_i_aksessuary/litye_diski_watanabe_rs_6r14_4100_8503704612",
+		},
+		{
+			name: "avito long social link is trimmed",
+			raw:  "https://www.avito.ru/kemerovo/knigi_i_zhurnaly/zhurnaly_7670111120?utm_campaign=native&utm_medium=item_page_android&utm_source=soc_sharing",
+			site: SiteAvito,
+			norm: "https://avito.ru/kemerovo/knigi_i_zhurnaly/zhurnaly_7670111120",
 		},
 		{
 			name:    "avito category page is not an ad",
