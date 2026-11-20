@@ -43,15 +43,22 @@ func (b *Browser) newTab() (context.Context, context.CancelFunc) {
 			chromedp.Flag("no-sandbox", true),
 			chromedp.Flag("disable-dev-shm-usage", true),
 			chromedp.Flag("disable-gpu", true),
-			chromedp.UserAgent(chromeUA),
-			// Проверка браузера смотрит на признаки автоматизации.
+			// UA не подменяем: Chrome сам присылает согласованные UA, Client
+			// Hints и платформу, а подмена на Windows-строку при Linux —
+			// лишний признак автоматизации.
+			// Blink-фича убирает navigator.webdriver, который выставляет chromedp.
 			chromedp.Flag("disable-blink-features", "AutomationControlled"),
 			chromedp.Flag("exclude-switches", "enable-automation"),
+			// Qrator на avito.ru сверяет язык страницы с адресом: без
+			// --accept-lang navigator.languages остаётся en-US.
+			chromedp.Flag("accept-lang", "ru-RU,ru"),
 			chromedp.Flag("lang", "ru-RU"),
 			chromedp.Flag("window-size", "1920,1080"),
 		)
-		if b.headless {
-			opts = append(opts, chromedp.Flag("headless", "new"))
+		// DefaultExecAllocatorOptions уже включает headless: для окна флаг
+		// нужно снять целиком, а не добавлять ещё один.
+		if !b.headless {
+			opts = append(opts, chromedp.VisibleWindow)
 		}
 		if b.proxy != "" {
 			opts = append(opts, chromedp.Flag("proxy-server", b.proxy))
