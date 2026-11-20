@@ -17,14 +17,16 @@ import (
 )
 
 const (
-	chromeUA           = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 	avitoAttempt       = 25 * time.Second
 	avitoAttempts      = 2
 	avitoAttemptMinGap = 5 * time.Second
-	avitoMaxPhotos     = 10
-	avitoMaxSpecs      = 10
-	avitoPriceReady    = `[data-marker="item-view/item-price"]`
-	avitoAutoteka      = "Проверить в Автотеке"
+	// avitoProbeReserve — остаток попытки, за который снимается состояние
+	// страницы, не отдавшей цену: без него ошибкой остаётся «deadline exceeded».
+	avitoProbeReserve = 2 * time.Second
+	avitoMaxPhotos    = 10
+	avitoMaxSpecs     = 10
+	avitoPriceReady   = `[data-marker="item-view/item-price"]`
+	avitoAutoteka     = "Проверить в Автотеке"
 )
 
 var avitoPhotoRe = regexp.MustCompile(`https://[0-9a-z]{2,4}\.img\.avito\.st/image/[^"'\s]+`)
@@ -119,7 +121,8 @@ func (a *Avito) Extract(ctx context.Context, u *url.URL) (*listing.Listing, erro
 		payload, err := a.snapshot(ctx, u.String(), timeout)
 		if err != nil {
 			lastErr = err
-			if ctx.Err() != nil {
+			// Заглушка проверки и пустая разметка не пройдут и со второй попытки.
+			if ctx.Err() != nil || errors.Is(err, ErrBlocked) || errors.Is(err, ErrNoData) {
 				break
 			}
 			continue
@@ -161,13 +164,27 @@ func (a *Avito) snapshot(ctx context.Context, target string, timeout time.Durati
 	ctx, cancel := context.WithTimeout(tabCtx, timeout)
 	defer cancel()
 
-	err := chromedp.Do(ctx,
+	// Первый Run запускает браузер и привязывает его к контексту: выделяем его
+	// под весь бюджет попытки, иначе укороченный waitCtx убьёт браузер вместе
+	// с собой и снять состояние страницы будет не с чего.
+	if _, err := chromedp.Run(ctx, chromedp.Title()); err != nil {
+		return avitoPayload{}, fmt.Errorf("avito: %w", err)
+	}
+
+	// Цену ждём не до самого дедлайна: остаток нужен, чтобы снять состояние
+	// страницы и назвать причину в ошибке, а не «context deadline exceeded».
+	waitCtx, waitCancel := context.WithTimeout(ctx, max(timeout-avitoProbeReserve, timeout/2))
+	err := chromedp.Do(waitCtx,
 		chromedp.Navigate(target),
 		// Ожидание селектора одновременно ждёт прохождения Qrator-challenge.
 		chromedp.WaitReady(chromedp.CSS(avitoPriceReady)),
 	)
+	waitCancel()
 	if err != nil {
-		return avitoPayload{}, fmt.Errorf("avito: %w", err)
+		if !errors.Is(err, context.DeadlineExceeded) || ctx.Err() != nil {
+			return avitoPayload{}, fmt.Errorf("avito: %w", err)
+		}
+		return avitoPayload{}, avitoWaitError(ctx, target, timeout)
 	}
 
 	raw, err := chromedp.Run(ctx, chromedp.Evaluate[string](avitoSnapshotJS))
@@ -180,6 +197,26 @@ func (a *Avito) snapshot(ctx context.Context, target string, timeout time.Durati
 		return avitoPayload{}, fmt.Errorf("avito: decode snapshot: %w", err)
 	}
 	return payload, nil
+}
+
+// avitoPage — заголовок и адрес страницы в момент, когда цена так и не появилась.
+type avitoPage struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
+// avitoWaitError объясняет, почему страница не отдала цену: Qrator вернул
+// заглушку проверки или объявление не догрузилось.
+func avitoWaitError(ctx context.Context, target string, timeout time.Duration) error {
+	page, err := chromedp.Run(ctx, chromedp.Evaluate[avitoPage](
+		`(() => ({title: document.title, url: location.href}))()`))
+	if err != nil {
+		return fmt.Errorf("avito: цена не появилась за %s (%s): %w", timeout, target, err)
+	}
+	if strings.Contains(page.Title, "Доступ ограничен") {
+		return fmt.Errorf("avito: %q (%s): %w", page.Title, page.URL, ErrBlocked)
+	}
+	return fmt.Errorf("avito: цена не появилась за %s: %q (%s)", timeout, page.Title, page.URL)
 }
 
 // avitoPayload — снимок страницы, который возвращает avitoSnapshotJS.

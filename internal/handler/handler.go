@@ -89,7 +89,9 @@ func (h *Handler) process(base context.Context, chatID int64, messageID int, raw
 	defer sendCancel()
 
 	if err != nil {
-		h.log.Warn("extract failed", "url", raw, "error", h.redact(err))
+		// url — адрес, который реально открывал браузер (без utm-хвоста),
+		// raw — исходная ссылка из сообщения.
+		h.log.Warn("extract failed", "url", u.String(), "raw", raw, "error", h.redact(err))
 		h.sendText(sendCtx, chatID, messageID, "Не удалось получить данные объявления: "+raw)
 		return
 	}

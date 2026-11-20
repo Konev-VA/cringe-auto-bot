@@ -14,7 +14,7 @@ import (
 // Config — настройки процесса.
 type Config struct {
 	BotToken     string        // BOT_TOKEN, обязателен
-	ChromePath   string        // CHROME_PATH, по умолчанию "/usr/bin/chromium"
+	ChromePath   string        // CHROME_PATH, по умолчанию "/opt/google/chrome/chrome"
 	FetchTimeout time.Duration // FETCH_TIMEOUT, по умолчанию 60s
 	LogLevel     string        // LOG_LEVEL, по умолчанию "info"
 	// ChromeHeadless — CHROME_HEADLESS, по умолчанию true. Для avito.ru из-за
@@ -39,7 +39,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		BotToken:       token,
-		ChromePath:     envOr("CHROME_PATH", "/usr/bin/chromium"),
+		ChromePath:     envOr("CHROME_PATH", "/opt/google/chrome/chrome"),
 		FetchTimeout:   60 * time.Second,
 		LogLevel:       envOr("LOG_LEVEL", "info"),
 		ChromeHeadless: envBool("CHROME_HEADLESS", true),
