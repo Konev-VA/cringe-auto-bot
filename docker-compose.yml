@@ -3,6 +3,6 @@ services:
     build: .
     image: autobot:latest
     env_file: .env
-    # Chrome падает на маленьком /dev/shm
+    # Chromium падает на маленьком /dev/shm
     shm_size: 1g
     restart: unless-stopped

@@ -55,7 +55,7 @@ func TestLiveAvito(t *testing.T) {
 
 	chromePath := os.Getenv("CHROME_PATH")
 	if chromePath == "" {
-		chromePath = "/opt/google/chrome/chrome"
+		chromePath = "/usr/bin/chromium"
 	}
 	browser := NewBrowser(chromePath, os.Getenv("AVITO_PROXY"), os.Getenv("CHROME_HEADLESS") != "false")
 	defer browser.Close()
